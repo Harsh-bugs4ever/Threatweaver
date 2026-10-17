@@ -1,0 +1,232 @@
+import { useEffect, useMemo, useState } from 'react'
+import { Background, Controls, ReactFlow, type Edge, type Node } from '@xyflow/react'
+import '@xyflow/react/dist/style.css'
+import { Activity, ArrowRight, Check, ChevronRight, CircleHelp, Database, ExternalLink,
+  FileText, GitBranch, Globe2, Info, Layers3, LoaderCircle, Radar, Search, ShieldAlert,
+  ShieldCheck, Sparkles, Waypoints, X } from 'lucide-react'
+
+type Evidence = {
+  id: string; predicate: string; object: string; source_time: string; fetched_at: string;
+  evidence_id: string; source_id: string; source_url: string; neighbor_key: string | null
+}
+type GraphData = {
+  nodes: { id: string; kind: string; label: string }[];
+  edges: { id: string; source: string; target: string; kind: string; observation_id: string }[];
+  paths: { nodes: string[]; observation_ids: string[]; type: string }[];
+  depth: number; limit: number; truncated: boolean
+}
+type Result = {
+  report: { indicator: string; status: string; data_freshness: string; observations: string[]; inferences: string[];
+    unknowns: string[]; recommended_actions: string[]; confidence: string;
+    observation_refs: { observation_id: string; evidence_id: string; source_id: string }[];
+    evidence_count: number; warnings: string[]; generated_at: string };
+  findings: { pulse_count?: number | null; pulse_names?: string[]; dns_count?: number; fetched_at?: string };
+  pivot: { indicator: string; reason: string; lookup_status: string; error?: string } | null;
+  graph: GraphData; evidence: Evidence[]; method: string;
+  agent: { status: string; message: string; audit: { tool: string; status: string }[] }
+}
+type Health = { service: string; graph: string; otx_configured: boolean; llm_configured: boolean }
+type HistoryItem = { id: string; indicator: string; created_at: string; status: string; method: string }
+
+function IndicatorNode({ data }: { data: { label: string; kind: string; root: boolean } }) {
+  return <div className={`indicator-node ${data.root ? 'root-node' : ''}`}>
+    <span className="node-icon">{data.kind === 'domain' ? <Globe2 size={17} /> : <Database size={17} />}</span>
+    <span className="node-copy"><strong>{data.label}</strong><small>{data.kind === 'domain' ? 'DOMAIN' : 'IP ADDRESS'}</small></span>
+  </div>
+}
+
+const nodeTypes = { indicator: IndicatorNode }
+
+function formatTime(value?: string) {
+  if (!value) return 'Unknown'
+  const date = new Date(value)
+  return Number.isNaN(date.getTime()) ? value : date.toLocaleString()
+}
+
+export default function App() {
+  const [input, setInput] = useState('')
+  const [expand, setExpand] = useState(true)
+  const [useAgent, setUseAgent] = useState(false)
+  const [result, setResult] = useState<Result | null>(null)
+  const [health, setHealth] = useState<Health | null>(null)
+  const [history, setHistory] = useState<HistoryItem[]>([])
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+  const [selectedEvidence, setSelectedEvidence] = useState<Evidence | null>(null)
+  const [activeTab, setActiveTab] = useState<'overview' | 'evidence'>('overview')
+
+  useEffect(() => {
+    fetch('/api/health').then(r => r.json()).then(setHealth).catch(() => setHealth(null))
+    refreshHistory()
+  }, [])
+
+  function refreshHistory() {
+    fetch('/api/investigations?limit=8').then(r => r.ok ? r.json() : null)
+      .then(data => setHistory(data?.items ?? [])).catch(() => setHistory([]))
+  }
+
+  async function openHistory(id: string) {
+    setError(''); setLoading(true); setSelectedEvidence(null)
+    try {
+      const response = await fetch(`/api/investigations/${id}`)
+      if (!response.ok) throw new Error('Saved investigation could not be loaded.')
+      const payload = await response.json() as Result
+      setResult(payload); setInput(payload.report.indicator.split(':').slice(1).join(':')); setActiveTab('overview')
+    } catch (cause) { setError(cause instanceof Error ? cause.message : 'History unavailable.') }
+    finally { setLoading(false) }
+  }
+
+  async function runInvestigation(event: React.FormEvent) {
+    event.preventDefault()
+    if (!input.trim()) return
+    setLoading(true); setError(''); setResult(null); setSelectedEvidence(null)
+    try {
+      const response = await fetch('/api/investigations', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ indicator: input.trim(), expand, use_agent: useAgent }),
+      })
+      const payload = await response.json()
+      if (!response.ok) {
+        const detail = payload.detail
+        throw new Error(typeof detail === 'string' ? detail : Array.isArray(detail)
+          ? detail.map(item => item.msg ?? 'Invalid input').join('; ')
+          : 'Investigation failed. Enter a domain or public IPv4 address.')
+      }
+      setResult(payload as Result)
+      setActiveTab('overview')
+      refreshHistory()
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'The investigation could not be completed.')
+    } finally { setLoading(false) }
+  }
+
+  const flow = useMemo(() => {
+    if (!result) return { nodes: [] as Node[], edges: [] as Edge[] }
+    const root = result.report.indicator
+    const others = result.graph.nodes.filter(node => node.id !== root)
+    const nodes: Node[] = [
+      { id: root, type: 'indicator', position: { x: 250, y: 190 },
+        data: { label: root.split(':').slice(1).join(':'), kind: root.split(':')[0], root: true } },
+      ...others.map((node, index) => {
+        const angle = (index / Math.max(others.length, 1)) * Math.PI * 2 - Math.PI / 2
+        const radius = others.length > 6 ? 250 : 205
+        return { id: node.id, type: 'indicator',
+          position: { x: 250 + Math.cos(angle) * radius, y: 190 + Math.sin(angle) * radius },
+          data: { label: node.label, kind: node.kind, root: false } }
+      }),
+    ]
+    const edges: Edge[] = result.graph.edges.map(edge => ({
+      id: edge.id, source: edge.source, target: edge.target,
+      style: { stroke: '#15b8a6', strokeWidth: 2 },
+      label: 'passive DNS', labelStyle: { fill: '#8fa6b3', fontSize: 10 },
+      labelBgStyle: { fill: '#0c1822' },
+    }))
+    return { nodes, edges }
+  }, [result])
+
+  async function inspectEdge(edgeId: string) {
+    const cached = result?.evidence.find(e => e.id === edgeId)
+    if (cached) { setSelectedEvidence(cached); return }
+    try {
+      const response = await fetch(`/api/observations/${edgeId}`)
+      if (!response.ok) throw new Error('This graph observation could not be loaded.')
+      setSelectedEvidence(await response.json() as Evidence)
+    } catch (cause) { setError(cause instanceof Error ? cause.message : 'Evidence unavailable.') }
+  }
+
+  return <div className="app-shell">
+    <aside className="sidebar">
+      <div className="brand"><div className="brand-mark"><Waypoints size={24} strokeWidth={2.4} /></div>
+        <div><strong>ThreatWeaver</strong><span>INVESTIGATION WORKBENCH</span></div></div>
+      <div className="sidebar-divider" />
+      <div className="nav-label">WORKSPACE</div>
+      <button className="nav-item active"><Radar size={18} /> Investigation <span className="nav-accent" /></button>
+      <div className="sidebar-section">
+        <div className="nav-label">INVESTIGATION SCOPE</div>
+        <div className="scope-item"><Globe2 size={16} /> Domains</div>
+        <div className="scope-item"><Database size={16} /> Public IPv4</div>
+        <div className="scope-item"><GitBranch size={16} /> 2-hop graph paths</div>
+      </div>
+      {history.length > 0 && <div className="sidebar-section history-section"><div className="nav-label">RECENT INVESTIGATIONS</div>
+        {history.map(item => <button className="history-item" key={item.id} onClick={() => openHistory(item.id)} title={item.indicator}><FileText size={14} /><span>{item.indicator.split(':').slice(1).join(':')}</span><ChevronRight size={13} /></button>)}</div>}
+      <div className="sidebar-bottom">
+        <div className="system-card">
+          <div className="system-head"><Activity size={16} /> System status</div>
+          <div><span className={`status-dot ${health?.graph === 'ready' ? 'good' : 'bad'}`} /> FalkorDB <strong>{health?.graph ?? 'Unknown'}</strong></div>
+          <div><span className={`status-dot ${health?.otx_configured ? 'good' : 'bad'}`} /> OTX key <strong>{health?.otx_configured ? 'Set' : 'Missing'}</strong></div>
+        </div>
+        <div className="sidebar-foot">Evidence first. Conclusions with context.</div>
+      </div>
+    </aside>
+
+    <main className="main-content">
+      <header className="topbar"><div className="breadcrumb">WORKSPACE <ChevronRight size={14} /> <span>INVESTIGATION</span></div>
+        <div className="topbar-right"><span className="live-badge"><span /> LOCAL WORKBENCH</span><CircleHelp size={17} /></div></header>
+      <div className="content-wrap">
+        <div className="page-heading"><div><div className="eyebrow"><span className="eyebrow-line" /> THREAT INTELLIGENCE / GRAPH TRIAGE</div>
+          <h1>Investigate the connection.</h1><p>Trace external intelligence through evidence and graph links. Decide what deserves attention next.</p></div>
+          <div className="heading-graphic"><ShieldCheck size={40} /></div></div>
+
+        <section className="search-panel">
+          <div className="panel-kicker"><Search size={16} /> START AN INVESTIGATION</div>
+          <form onSubmit={runInvestigation} className="search-form"><div className="input-wrap"><Globe2 size={19} />
+            <input value={input} onChange={e => setInput(e.target.value)} placeholder="Enter a domain or public IPv4 address" aria-label="Indicator" />
+            {input && <button type="button" className="clear-button" onClick={() => setInput('')} aria-label="Clear"><X size={16} /></button>}</div>
+            <button className="primary-button" disabled={loading || !input.trim()}>{loading ? <LoaderCircle className="spin" size={18} /> : <Radar size={18} />}{loading ? 'Investigating' : 'Investigate'}<ArrowRight size={16} /></button></form>
+          <div className="search-meta"><span><Info size={14} /> Example: example.com or 8.8.8.8. Omit https:// and paths.</span><label className="toggle-line"><input type="checkbox" checked={expand} onChange={e => setExpand(e.target.checked)} /><span className="switch" /> Follow one graph selected pivot</label>
+            <label className="toggle-line"><input type="checkbox" checked={useAgent} onChange={e => setUseAgent(e.target.checked)} /><span className="switch" /> DeepSeek tool planner</label>
+            <span><Info size={14} /> Live OTX lookup. No automated blocking.</span></div>
+        </section>
+
+        {error && <div className="error-banner"><ShieldAlert size={20} /><div><strong>Investigation could not run</strong><span>{error}</span></div></div>}
+
+        {!result && !loading && <div className="empty-state"><div className="empty-icon"><Layers3 size={32} /></div><h2>See the story behind an indicator</h2>
+          <p>Enter a domain or public IP to collect OTX context, persist sourced observations in FalkorDB, and inspect related indicators.</p>
+          <div className="empty-steps"><span><b>01</b> LOOK UP</span><ChevronRight size={15} /><span><b>02</b> LINK EVIDENCE</span><ChevronRight size={15} /><span><b>03</b> TRIAGE</span></div></div>}
+
+        {loading && <div className="loading-state"><LoaderCircle className="spin" size={30} /><strong>Tracing the evidence</strong><span>Fetching OTX context and following bounded graph links…</span></div>}
+
+        {result && <div className="results">
+          <div className="result-header"><div><div className="eyebrow">INVESTIGATION RESULT <span className="small-separator">/</span> {result.report.status.toUpperCase()}</div>
+            <h2>{result.report.indicator.split(':').slice(1).join(':')}</h2><div className="result-sub"><span>{result.report.indicator.split(':')[0].toUpperCase()}</span><span>Updated {formatTime(result.report.generated_at)}</span></div></div>
+            <span className={`result-status ${result.report.status}`}><span /> {result.report.status === 'complete' ? 'Analysis complete' : 'Partial analysis'}</span></div>
+          {result.report.warnings.length > 0 && <div className="warning-banner"><ShieldAlert size={18} /><div>{result.report.warnings.map((warning, index) => <p key={index}>{warning}</p>)}</div></div>}
+          {useAgent && <div className="agent-banner"><Sparkles size={16} /><span>DeepSeek planner: {result.agent.status.replaceAll('_', ' ')} · {result.agent.audit.length} audited call(s). {result.agent.status === 'not_configured' ? result.agent.message : ''}</span></div>}
+          <div className="stats-row"><div className="stat-card"><span>OTX PULSES</span><strong>{result.findings.pulse_count ?? '—'}</strong><small>{result.findings.pulse_count == null ? 'No verified count' : 'Source observation'}</small></div>
+            <div className="stat-card"><span>DNS LINKS</span><strong>{result.findings.dns_count ?? '—'}</strong><small>{result.findings.dns_count == null ? 'Source unavailable' : 'Bounded OTX sample'}</small></div>
+            <div className="stat-card"><span>EVIDENCE ITEMS</span><strong>{result.report.evidence_count}</strong><small>Stored for this indicator</small></div>
+            <div className="stat-card"><span>GRAPH PIVOT</span><strong className="stat-text">{result.pivot ? 'Selected' : 'None'}</strong><small>{result.pivot ? result.pivot.indicator : 'No observed neighbor'}</small></div></div>
+          <div className="section-tabs"><button className={activeTab === 'overview' ? 'selected' : ''} onClick={() => setActiveTab('overview')}><Activity size={16} /> Overview</button>
+            <button className={activeTab === 'evidence' ? 'selected' : ''} onClick={() => setActiveTab('evidence')}><FileText size={16} /> Evidence <span>{result.evidence.length}</span></button></div>
+
+          {activeTab === 'overview' ? <div className="result-grid">
+            <section className="card graph-card"><div className="card-heading"><div><div className="panel-kicker"><GitBranch size={16} /> RELATIONSHIP GRAPH</div><p>{result.report.data_freshness === 'current_otx_fetch' ? 'Stored links · inspect each source timestamp' : 'Stored links · current OTX fetch unavailable'} · max 2 hops</p></div><span className="card-tag">FALKORDB</span></div>
+              <div className="graph-canvas"><ReactFlow nodes={flow.nodes} edges={flow.edges} nodeTypes={nodeTypes} fitView fitViewOptions={{ padding: 0.25 }} onEdgeClick={(_, edge) => inspectEdge(edge.id)} nodesDraggable={false} nodesConnectable={false}><Background color="#203444" gap={24} size={1} /><Controls showInteractive={false} /></ReactFlow></div>
+              <div className="graph-foot"><span><i className="legend-dot" /> Observed link</span><span>{result.graph.edges.length} link(s) shown{result.graph.truncated ? ' · limit reached' : ''}</span></div></section>
+            <div className="right-stack"><section className="card actions-card"><div className="panel-kicker"><ShieldCheck size={16} /> RECOMMENDED NEXT STEPS</div>
+              {result.report.recommended_actions.map((action, index) => <div className="action-row" key={index}><span>{String(index + 1).padStart(2, '0')}</span><p>{action}</p></div>)}</section>
+              <section className="card pivot-card"><div className="panel-kicker"><Waypoints size={16} /> GRAPH SELECTED PIVOT</div>{result.pivot ? <><strong>{result.pivot.indicator}</strong><p>{result.pivot.reason}</p><span className="pivot-status"><span className={result.pivot.lookup_status === 'complete' ? 'good' : 'bad'} /> Lookup {result.pivot.lookup_status.replace('_', ' ')}</span></> : <p>No observed neighbor was available to inspect.</p>}</section></div>
+            <section className="card narrative-card"><div className="panel-kicker"><Check size={16} /> SOURCE OBSERVATIONS</div>{result.report.observations.map((item, i) => <p key={i}>{item}</p>)}
+              {result.report.observation_refs.length > 0 && <button className="inline-link" onClick={() => setActiveTab('evidence')}>View {result.report.observation_refs.length} source reference(s) in evidence ledger <ArrowRight size={13} /></button>}
+              {result.findings.pulse_names && result.findings.pulse_names.length > 0 && <div className="pulse-list"><small>OTX PULSE NAMES</small>{result.findings.pulse_names.map((name, i) => <span key={i}>{name}</span>)}</div>}</section>
+            <section className="card narrative-card"><div className="panel-kicker"><Sparkles size={16} /> INFERENCE & UNKNOWNS</div>{result.report.inferences.map((item, i) => <p key={i}>{item}</p>)}
+              {result.report.unknowns.map((item, i) => <p className="unknown" key={i}>{item}</p>)}</section>
+          </div> : <section className="card evidence-card"><div className="card-heading"><div><div className="panel-kicker"><FileText size={16} /> EVIDENCE LEDGER</div><p>Source IDs and timestamps for stored observations</p></div></div>
+            {result.evidence.length ? result.evidence.map(item => <button className="evidence-row" key={item.id} onClick={() => setSelectedEvidence(item)}><span className="evidence-type">{item.predicate.replaceAll('_', ' ')}</span><strong>{item.object}</strong><small>{item.source_id}</small><ChevronRight size={16} /></button>) : <div className="no-evidence">No verified evidence has been stored for this indicator.</div>}</section>}
+          <div className="result-disclaimer"><Info size={15} /> OTX associations and graph proximity do not establish compromise. Validate against internal telemetry before acting.</div>
+        </div>}
+      </div>
+    </main>
+
+    {selectedEvidence && <div className="drawer-backdrop" onClick={() => setSelectedEvidence(null)}><aside className="evidence-drawer" onClick={e => e.stopPropagation()}><div className="drawer-head"><div><small>EVIDENCE INSPECTOR</small><h3>Source observation</h3></div><button onClick={() => setSelectedEvidence(null)} aria-label="Close"><X size={20} /></button></div>
+      <div className="drawer-body"><div className="drawer-label">OBSERVATION</div><div className="drawer-value strong">{selectedEvidence.predicate.replaceAll('_', ' ')}</div><div className="drawer-value">{selectedEvidence.object}</div>
+        <div className="drawer-label">SOURCE ID</div><div className="drawer-value mono">{selectedEvidence.source_id}</div>
+        <div className="drawer-label">OBSERVATION ID</div><div className="drawer-value mono">{selectedEvidence.id}</div>
+        <div className="drawer-label">EVIDENCE ID</div><div className="drawer-value mono">{selectedEvidence.evidence_id}</div>
+        <div className="drawer-label">SOURCE TIMESTAMP</div><div className="drawer-value">{formatTime(selectedEvidence.source_time)}</div>
+        <div className="drawer-label">LAST FETCHED</div><div className="drawer-value">{formatTime(selectedEvidence.fetched_at)}</div>
+        {selectedEvidence.neighbor_key && <><div className="drawer-label">LINKED INDICATOR</div><div className="drawer-value mono">{selectedEvidence.neighbor_key}</div></>}
+        <a className="source-link" href={selectedEvidence.source_url} target="_blank" rel="noreferrer">View OTX endpoint <ExternalLink size={15} /></a></div>
+    </aside></div>}
+  </div>
+}
