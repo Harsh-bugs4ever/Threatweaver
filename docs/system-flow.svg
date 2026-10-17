@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1320 710" role="img" aria-labelledby="title desc">
+<title id="title">ThreatWeaver system flow</title>
+<desc id="desc">Indicator to React workbench, FastAPI investigator, and FalkorDB. The investigator uses OTX, Google Public DNS, and optionally DeepSeek.</desc>
+<defs><marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M 1 1 L 9 5 L 1 9" fill="none" stroke="#64748b" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></marker>
+<marker id="pink" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M 1 1 L 9 5 L 1 9" fill="none" stroke="#e11d48" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></marker>
+<marker id="green" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M 1 1 L 9 5 L 1 9" fill="none" stroke="#16a34a" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></marker>
+<marker id="purple" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M 1 1 L 9 5 L 1 9" fill="none" stroke="#7c3aed" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></marker></defs>
+<rect width="1320" height="710" fill="#f8fafc"/>
+<text x="50" y="61" font-family="Arial,sans-serif" font-size="31" font-weight="700" fill="#0f172a">ThreatWeaver / system flow</text>
+<text x="50" y="93" font-family="Arial,sans-serif" font-size="17" fill="#475569">Source-backed investigation through a persistent graph</text>
+<text x="50" y="128" font-family="Arial,sans-serif" font-size="13" font-weight="700" letter-spacing="1.4" fill="#64748b">REQUEST + GRAPH CONTEXT</text>
+<text x="50" y="433" font-family="Arial,sans-serif" font-size="13" font-weight="700" letter-spacing="1.4" fill="#64748b">EXTERNAL ENRICHMENT</text>
+<line x1="290" y1="221" x2="340" y2="221" stroke="#64748b" stroke-width="2.5" stroke-linecap="round" marker-end="url(#arrow)"/>
+<line x1="590" y1="221" x2="660" y2="221" stroke="#64748b" stroke-width="2.5" stroke-linecap="round" marker-end="url(#arrow)"/>
+<line x1="910" y1="221" x2="1000" y2="221" stroke="#64748b" stroke-width="2.5" stroke-linecap="round" marker-end="url(#arrow)"/>
+<line x1="714" y1="306" x2="505" y2="446" stroke="#e11d48" stroke-width="2.5" stroke-linecap="round" marker-end="url(#pink)"/>
+<line x1="785" y1="306" x2="815" y2="446" stroke="#16a34a" stroke-width="2.5" stroke-linecap="round" marker-end="url(#green)"/>
+<line x1="856" y1="306" x2="1125" y2="446" stroke="#7c3aed" stroke-width="2.5" stroke-linecap="round" marker-end="url(#purple)"/>
+<rect x="50" y="150" width="230" height="142" rx="16" fill="#fff7ed" stroke="#d97706" stroke-width="2.3"/>
+<text x="69" y="205" font-family="Arial,sans-serif" font-size="18" font-weight="700" fill="#0f172a">01  Indicator</text>
+<text x="69" y="248" font-family="Arial,sans-serif" font-size="15" fill="#475569">Domain or public IPv4</text>
+<rect x="350" y="150" width="230" height="142" rx="16" fill="#eef2ff" stroke="#6366f1" stroke-width="2.3"/>
+<text x="369" y="205" font-family="Arial,sans-serif" font-size="18" font-weight="700" fill="#0f172a">02  React workbench</text>
+<text x="369" y="248" font-family="Arial,sans-serif" font-size="15" fill="#475569">Search, graph, evidence</text>
+<rect x="670" y="150" width="230" height="142" rx="16" fill="#ecfeff" stroke="#0891b2" stroke-width="2.3"/>
+<text x="689" y="205" font-family="Arial,sans-serif" font-size="18" font-weight="700" fill="#0f172a">03  FastAPI investigator</text>
+<text x="689" y="248" font-family="Arial,sans-serif" font-size="15" fill="#475569">Validate, enrich, trace</text>
+<rect x="1010" y="150" width="230" height="142" rx="16" fill="#ecfdf5" stroke="#059669" stroke-width="2.3"/>
+<text x="1029" y="205" font-family="Arial,sans-serif" font-size="18" font-weight="700" fill="#0f172a">04  FalkorDB</text>
+<text x="1029" y="248" font-family="Arial,sans-serif" font-size="15" fill="#475569">Evidence, links, history</text>
+<rect x="390" y="460" width="230" height="126" rx="16" fill="#fef2f2" stroke="#e11d48" stroke-width="2.3"/>
+<text x="409" y="515" font-family="Arial,sans-serif" font-size="18" font-weight="700" fill="#0f172a">AlienVault OTX</text>
+<text x="409" y="558" font-family="Arial,sans-serif" font-size="15" fill="#475569">Pulses + passive DNS</text>
+<rect x="700" y="460" width="230" height="126" rx="16" fill="#f0fdf4" stroke="#16a34a" stroke-width="2.3"/>
+<text x="719" y="515" font-family="Arial,sans-serif" font-size="18" font-weight="700" fill="#0f172a">Google Public DNS</text>
+<text x="719" y="558" font-family="Arial,sans-serif" font-size="15" fill="#475569">Current A records</text>
+<rect x="1010" y="460" width="230" height="126" rx="16" fill="#f5f3ff" stroke="#7c3aed" stroke-width="2.3"/>
+<text x="1029" y="515" font-family="Arial,sans-serif" font-size="18" font-weight="700" fill="#0f172a">DeepSeek (optional)</text>
+<text x="1029" y="558" font-family="Arial,sans-serif" font-size="15" fill="#475569">Bounded tool planning</text>
+<text x="50" y="646" font-family="Arial,sans-serif" font-size="16" fill="#334155">Observations keep source IDs and retrieval times. Graph links guide at most one follow-up lookup.</text>
+<text x="50" y="678" font-family="Arial,sans-serif" font-size="14" fill="#64748b">Recommendations only: no automatic blocking or isolation.</text>
+</svg>

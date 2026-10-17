@@ -1,6 +1,7 @@
 from datetime import datetime, timezone
 from typing import Any
 from urllib.parse import quote
+from .dns import DnsClient, DnsError, DnsResult
 from .graph import GraphStore
 from .indicators import Indicator, parse_indicator
 from .otx import OtxClient, OtxError, OtxResult, extract_dns
@@ -46,16 +47,27 @@ def persist_otx(graph: GraphStore, otx: OtxClient, indicator: Indicator, result:
             "source_warnings": result.warnings}
 
 
+def persist_live_dns(graph: GraphStore, domain: Indicator, result: DnsResult) -> list[str]:
+    for address in result.addresses:
+        graph.add_observation(domain, "current_dns_a", address.key,
+                              f"google-dns:{domain.key}:A:{address.key}", result.source_url,
+                              result.fetched_at, result.fetched_at, address)
+    return [address.key for address in result.addresses]
+
+
 def make_report(indicator: Indicator, findings: dict[str, Any], graph_data: dict[str, Any],
                 evidence: list[dict[str, Any]], pivot: dict[str, Any] | None,
                 warnings: list[str]) -> dict[str, Any]:
     pulse_count = findings.get("pulse_count")
     dns_count = findings.get("dns_count", 0)
+    live_dns_count = findings.get("live_dns_count")
     observations = []
     if pulse_count is not None:
         observations.append(f"OTX lists {pulse_count} pulse(s) for {indicator.value}.")
     if dns_count:
         observations.append(f"OTX passive DNS returned {dns_count} related indicator(s) in this bounded sample.")
+    if live_dns_count is not None:
+        observations.append(f"Google Public DNS returned {live_dns_count} current IPv4 answer(s) for {indicator.value}.")
     if not observations:
         observations.append(f"Current OTX lookup produced no verified finding; {len(evidence)} previously stored observation(s) are shown." if evidence
                             else "No supported OTX finding was available for this investigation.")
@@ -71,11 +83,13 @@ def make_report(indicator: Indicator, findings: dict[str, Any], graph_data: dict
         actions.append(f"Review {pivot['indicator']} as the first related indicator, selected from observed graph links.")
     if dns_count:
         actions.append("Compare passive DNS timestamps with internal telemetry before drawing a conclusion.")
+    if live_dns_count:
+        actions.append("Check whether the currently resolved IP addresses appear in your own DNS or network logs.")
     if not actions:
         actions.append("Collect additional trusted telemetry before deciding whether to escalate.")
     confidence = "limited" if pulse_count is None else "source_observations_only"
     return {"indicator": indicator.key, "status": "complete" if not warnings else "partial",
-            "data_freshness": "current_otx_fetch" if findings.get("fetched_at") else "stored_graph_only",
+            "data_freshness": "current_external_fetch" if findings.get("fetched_at") or findings.get("live_dns_fetched_at") else "stored_graph_only",
             "observations": observations, "observation_refs": observation_refs, "inferences": inferred,
             "unknowns": ["OTX context alone cannot establish compromise or intent.",
                          "Internal asset exposure and traffic are unknown."],
@@ -84,7 +98,8 @@ def make_report(indicator: Indicator, findings: dict[str, Any], graph_data: dict
             "generated_at": datetime.now(timezone.utc).isoformat()}
 
 
-async def investigate(indicator: Indicator, graph: GraphStore, otx: OtxClient, expand: bool = True) -> dict[str, Any]:
+async def investigate(indicator: Indicator, graph: GraphStore, otx: OtxClient, expand: bool = True,
+                      dns: DnsClient | None = None) -> dict[str, Any]:
     graph.upsert_indicator(indicator)
     warnings: list[str] = []
     findings: dict[str, Any] = {}
@@ -93,14 +108,23 @@ async def investigate(indicator: Indicator, graph: GraphStore, otx: OtxClient, e
         warnings.extend(findings["source_warnings"])
     except OtxError as exc:
         warnings.append(str(exc))
+    if dns is not None and indicator.kind == "domain":
+        try:
+            live_dns = await dns.lookup_a(indicator)
+            findings["live_dns_keys"] = persist_live_dns(graph, indicator, live_dns)
+            findings["live_dns_count"] = len(live_dns.addresses)
+            findings["live_dns_fetched_at"] = live_dns.fetched_at
+        except DnsError as exc:
+            warnings.append(str(exc))
     pivot = None
     # The graph decides the first follow-up. Only observed links qualify and at most one is queried.
-    if expand and not warnings and findings.get("dns_keys"):
-        current_keys = set(findings["dns_keys"])
+    current_keys = set(findings.get("dns_keys", []) + findings.get("live_dns_keys", []))
+    if expand and current_keys:
         neighbors = [key for key in graph.recent_neighbors(indicator, 10) if key in current_keys][:MAX_PIVOTS]
         if neighbors:
             chosen = parse_indicator(neighbors[0].split(":", 1)[1])
-            pivot = {"indicator": chosen.key, "reason": "Observed passive DNS link in this OTX fetch, persisted in FalkorDB",
+            source_label = "current Google Public DNS answer" if chosen.key in findings.get("live_dns_keys", []) else "OTX passive DNS observation"
+            pivot = {"indicator": chosen.key, "reason": f"Graph link from a {source_label}, persisted in FalkorDB",
                      "lookup_status": "not_attempted"}
             try:
                 pivot["findings"] = persist_otx(graph, otx, chosen, await otx.lookup(chosen))

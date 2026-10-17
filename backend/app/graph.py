@@ -94,19 +94,22 @@ class GraphStore:
         limit = min(max(limit, 1), 50)
         first = self._query("""
             MATCH (root:Indicator {key:$key})-[r:OBSERVED_LINK]-(n:Indicator)
-            RETURN root.key, n.key, r.observation_id LIMIT $limit
+            RETURN root.key, n.key, r.observation_id, r.predicate LIMIT $limit
         """, {"key": indicator.key, "limit": limit})
-        paths = [{"nodes": [r[0], r[1]], "observation_ids": [r[2]], "type": "observed_path"}
+        paths = [{"nodes": [r[0], r[1]], "observation_ids": [r[2]],
+                  "predicates": [r[3]], "type": "observed_path"}
                  for r in first]
         if depth == 2 and len(paths) < limit:
             second = self._query("""
                 MATCH (root:Indicator {key:$key})-[r1:OBSERVED_LINK]-(mid:Indicator)
                       -[r2:OBSERVED_LINK]-(n:Indicator)
                 WHERE n.key <> root.key
-                RETURN root.key, mid.key, n.key, r1.observation_id, r2.observation_id
+                RETURN root.key, mid.key, n.key, r1.observation_id, r2.observation_id,
+                       r1.predicate, r2.predicate
                 LIMIT $limit
             """, {"key": indicator.key, "limit": limit - len(paths)})
             paths.extend({"nodes": [r[0], r[1], r[2]], "observation_ids": [r[3], r[4]],
+                          "predicates": [r[5], r[6]],
                           "type": "observed_path"} for r in second)
         keys = {indicator.key}
         for path in paths:
@@ -115,11 +118,13 @@ class GraphStore:
         edges = []
         edge_ids = set()
         for path in paths:
-            for left, right, oid in zip(path["nodes"], path["nodes"][1:], path["observation_ids"]):
+            for left, right, oid, predicate in zip(path["nodes"], path["nodes"][1:],
+                                                    path["observation_ids"], path["predicates"]):
                 if oid in edge_ids:
                     continue
                 edge_ids.add(oid)
-                edges.append({"id": oid, "source": left, "target": right, "kind": "observed", "observation_id": oid})
+                edges.append({"id": oid, "source": left, "target": right, "kind": "observed",
+                              "predicate": predicate, "observation_id": oid})
         return {"nodes": nodes, "edges": edges, "paths": paths, "depth": depth, "limit": limit,
                 "truncated": len(paths) >= limit}
 

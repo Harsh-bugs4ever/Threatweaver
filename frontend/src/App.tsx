@@ -11,7 +11,7 @@ type Evidence = {
 }
 type GraphData = {
   nodes: { id: string; kind: string; label: string }[];
-  edges: { id: string; source: string; target: string; kind: string; observation_id: string }[];
+  edges: { id: string; source: string; target: string; kind: string; predicate: string; observation_id: string }[];
   paths: { nodes: string[]; observation_ids: string[]; type: string }[];
   depth: number; limit: number; truncated: boolean
 }
@@ -20,7 +20,8 @@ type Result = {
     unknowns: string[]; recommended_actions: string[]; confidence: string;
     observation_refs: { observation_id: string; evidence_id: string; source_id: string }[];
     evidence_count: number; warnings: string[]; generated_at: string };
-  findings: { pulse_count?: number | null; pulse_names?: string[]; dns_count?: number; fetched_at?: string };
+  findings: { pulse_count?: number | null; pulse_names?: string[]; dns_count?: number;
+    live_dns_count?: number; fetched_at?: string; live_dns_fetched_at?: string };
   pivot: { indicator: string; reason: string; lookup_status: string; error?: string } | null;
   graph: GraphData; evidence: Evidence[]; method: string;
   agent: { status: string; message: string; audit: { tool: string; status: string }[] }
@@ -118,7 +119,8 @@ export default function App() {
     const edges: Edge[] = result.graph.edges.map(edge => ({
       id: edge.id, source: edge.source, target: edge.target,
       style: { stroke: '#15b8a6', strokeWidth: 2 },
-      label: 'passive DNS', labelStyle: { fill: '#8fa6b3', fontSize: 10 },
+      label: edge.predicate === 'current_dns_a' ? 'current DNS' : 'OTX passive DNS',
+      labelStyle: { fill: '#8fa6b3', fontSize: 10 },
       labelBgStyle: { fill: '#0c1822' },
     }))
     return { nodes, edges }
@@ -193,16 +195,16 @@ export default function App() {
           {result.report.warnings.length > 0 && <div className="warning-banner"><ShieldAlert size={18} /><div>{result.report.warnings.map((warning, index) => <p key={index}>{warning}</p>)}</div></div>}
           {useAgent && <div className="agent-banner"><Sparkles size={16} /><span>DeepSeek planner: {result.agent.status.replaceAll('_', ' ')} · {result.agent.audit.length} audited call(s). {result.agent.status === 'not_configured' ? result.agent.message : ''}</span></div>}
           <div className="stats-row"><div className="stat-card"><span>OTX PULSES</span><strong>{result.findings.pulse_count ?? '—'}</strong><small>{result.findings.pulse_count == null ? 'No verified count' : 'Source observation'}</small></div>
-            <div className="stat-card"><span>DNS LINKS</span><strong>{result.findings.dns_count ?? '—'}</strong><small>{result.findings.dns_count == null ? 'Source unavailable' : 'Bounded OTX sample'}</small></div>
+            <div className="stat-card"><span>GRAPH LINKS</span><strong>{result.graph.edges.length}</strong><small>Current DNS + OTX history</small></div>
             <div className="stat-card"><span>EVIDENCE ITEMS</span><strong>{result.report.evidence_count}</strong><small>Stored for this indicator</small></div>
             <div className="stat-card"><span>GRAPH PIVOT</span><strong className="stat-text">{result.pivot ? 'Selected' : 'None'}</strong><small>{result.pivot ? result.pivot.indicator : 'No observed neighbor'}</small></div></div>
           <div className="section-tabs"><button className={activeTab === 'overview' ? 'selected' : ''} onClick={() => setActiveTab('overview')}><Activity size={16} /> Overview</button>
             <button className={activeTab === 'evidence' ? 'selected' : ''} onClick={() => setActiveTab('evidence')}><FileText size={16} /> Evidence <span>{result.evidence.length}</span></button></div>
 
           {activeTab === 'overview' ? <div className="result-grid">
-            <section className="card graph-card"><div className="card-heading"><div><div className="panel-kicker"><GitBranch size={16} /> RELATIONSHIP GRAPH</div><p>{result.report.data_freshness === 'current_otx_fetch' ? 'Stored links · inspect each source timestamp' : 'Stored links · current OTX fetch unavailable'} · max 2 hops</p></div><span className="card-tag">FALKORDB</span></div>
+            <section className="card graph-card"><div className="card-heading"><div><div className="panel-kicker"><GitBranch size={16} /> RELATIONSHIP GRAPH</div><p>{result.report.data_freshness === 'current_external_fetch' ? 'Current DNS and OTX links · inspect each source timestamp' : 'Stored links · current sources unavailable'} · max 2 hops</p></div><a className="card-tag graph-browser-link" href="http://localhost:3000" target="_blank" rel="noreferrer" title="Open FalkorDB Browser and select the threatweaver graph">OPEN IN FALKORDB <ExternalLink size={12} /></a></div>
               <div className="graph-canvas"><ReactFlow nodes={flow.nodes} edges={flow.edges} nodeTypes={nodeTypes} fitView fitViewOptions={{ padding: 0.25 }} onEdgeClick={(_, edge) => inspectEdge(edge.id)} nodesDraggable={false} nodesConnectable={false}><Background color="#203444" gap={24} size={1} /><Controls showInteractive={false} /></ReactFlow></div>
-              <div className="graph-foot"><span><i className="legend-dot" /> Observed link</span><span>{result.graph.edges.length} link(s) shown{result.graph.truncated ? ' · limit reached' : ''}</span></div></section>
+              <div className="graph-foot"><span><i className="legend-dot" /> Sourced link</span><span>{result.graph.edges.length} link(s) shown{result.graph.truncated ? ' · limit reached' : ''}</span></div></section>
             <div className="right-stack"><section className="card actions-card"><div className="panel-kicker"><ShieldCheck size={16} /> RECOMMENDED NEXT STEPS</div>
               {result.report.recommended_actions.map((action, index) => <div className="action-row" key={index}><span>{String(index + 1).padStart(2, '0')}</span><p>{action}</p></div>)}</section>
               <section className="card pivot-card"><div className="panel-kicker"><Waypoints size={16} /> GRAPH SELECTED PIVOT</div>{result.pivot ? <><strong>{result.pivot.indicator}</strong><p>{result.pivot.reason}</p><span className="pivot-status"><span className={result.pivot.lookup_status === 'complete' ? 'good' : 'bad'} /> Lookup {result.pivot.lookup_status.replace('_', ' ')}</span></> : <p>No observed neighbor was available to inspect.</p>}</section></div>
@@ -226,7 +228,7 @@ export default function App() {
         <div className="drawer-label">SOURCE TIMESTAMP</div><div className="drawer-value">{formatTime(selectedEvidence.source_time)}</div>
         <div className="drawer-label">LAST FETCHED</div><div className="drawer-value">{formatTime(selectedEvidence.fetched_at)}</div>
         {selectedEvidence.neighbor_key && <><div className="drawer-label">LINKED INDICATOR</div><div className="drawer-value mono">{selectedEvidence.neighbor_key}</div></>}
-        <a className="source-link" href={selectedEvidence.source_url} target="_blank" rel="noreferrer">View OTX endpoint <ExternalLink size={15} /></a></div>
+        <a className="source-link" href={selectedEvidence.source_url} target="_blank" rel="noreferrer">View source record <ExternalLink size={15} /></a></div>
     </aside></div>}
   </div>
 }

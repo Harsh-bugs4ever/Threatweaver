@@ -8,6 +8,7 @@ from fastapi.testclient import TestClient
 from backend.app import main as api
 from backend.app.agent import run_agent
 from backend.app.config import Settings
+from backend.app.dns import DnsClient, DnsResult
 from backend.app.graph import GraphError, GraphStore
 from backend.app.indicators import Indicator, parse_indicator
 from backend.app.investigation import investigate, make_report
@@ -49,6 +50,21 @@ def test_otx_keeps_general_result_when_passive_dns_times_out(monkeypatch):
     assert result.general["pulse_info"]["count"] == 2
     assert result.passive_dns == {}
     assert "passive DNS" in result.warnings[0]
+
+
+def test_current_dns_answers_are_validated_and_bounded(monkeypatch):
+    def respond(request):
+        assert request.url.params["name"] == "example.com"
+        assert request.url.params["type"] == "A"
+        return httpx.Response(200, json={"Status": 0, "Answer": [
+            {"type": 1, "data": "8.8.8.8"}, {"type": 1, "data": "8.8.8.8"},
+            {"type": 1, "data": "127.0.0.1"}, {"type": 5, "data": "alias.example.com."}]})
+
+    original_client = httpx.AsyncClient
+    monkeypatch.setattr(httpx, "AsyncClient", lambda **kwargs: original_client(transport=httpx.MockTransport(respond), **kwargs))
+    result = asyncio.run(DnsClient().lookup_a(parse_indicator("example.com")))
+    assert [address.key for address in result.addresses] == ["IPv4:8.8.8.8"]
+    assert result.source_url.startswith("https://dns.google/resolve?")
 
 
 def test_api_validates_before_graph_and_returns_service_error(monkeypatch):
@@ -134,6 +150,12 @@ class FakeOtx:
                          datetime.now(timezone.utc).isoformat())
 
 
+class FakeDns:
+    async def lookup_a(self, indicator):
+        return DnsResult([parse_indicator("8.8.8.8")], datetime.now(timezone.utc).isoformat(),
+                         "https://dns.google/resolve?name=example.com&type=A")
+
+
 def test_missing_source_is_partial_without_invented_findings():
     result = asyncio.run(investigate(parse_indicator("example.com"), FakeGraph(), FakeOtx(failure=True)))
     assert result["report"]["status"] == "partial"
@@ -158,6 +180,17 @@ def test_current_observed_graph_neighbor_is_followed_once():
     result = asyncio.run(investigate(parse_indicator("example.com"), graph, otx))
     assert result["pivot"]["indicator"] == "IPv4:8.8.8.8"
     assert otx.calls == ["domain:example.com", "IPv4:8.8.8.8"]
+
+
+def test_current_dns_link_is_sourced_and_can_drive_graph_pivot():
+    graph = FakeGraph()
+    graph.lookup_keys = ["IPv4:8.8.8.8"]
+    otx = FakeOtx(dns=[])
+    result = asyncio.run(investigate(parse_indicator("example.com"), graph, otx, dns=FakeDns()))
+    assert result["findings"]["live_dns_count"] == 1
+    assert any(item[1] == "current_dns_a" and item[4] == "IPv4:8.8.8.8" for item in graph.observations)
+    assert result["pivot"]["indicator"] == "IPv4:8.8.8.8"
+    assert "current Google Public DNS" in result["pivot"]["reason"]
 
 
 def test_report_describes_association_as_inference_with_unknowns():

@@ -5,6 +5,7 @@ from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from .config import get_settings
+from .dns import DnsClient
 from .graph import GraphError, GraphStore
 from .indicators import parse_indicator
 from .investigation import investigate, persist_otx
@@ -68,8 +69,9 @@ async def run_investigation(body: InvestigationRequest):
     indicator = parse_indicator(body.indicator)
     graph = get_graph()
     otx = get_otx()
-    result = await investigate(indicator, graph, otx, body.expand)
-    result["agent"] = await run_agent(indicator, graph, otx, get_settings(), result["findings"].get("dns_keys", [])) if body.use_agent else {
+    result = await investigate(indicator, graph, otx, body.expand, DnsClient())
+    current_keys = result["findings"].get("dns_keys", []) + result["findings"].get("live_dns_keys", [])
+    result["agent"] = await run_agent(indicator, graph, otx, get_settings(), current_keys) if body.use_agent else {
         "status": "not_requested", "message": "Deterministic graph-guided investigation used.", "audit": []}
     result["investigation_id"] = graph.save_investigation(indicator, result)
     return result
