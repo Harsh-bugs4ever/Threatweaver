@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1160 650" role="img" aria-labelledby="title desc">
+<title id="title">Every finding has a source</title><desc id="desc">The full database graph records indicators, findings, supporting records, and investigation history.</desc>
+<defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 1 1 L 9 5 L 1 9" fill="none" stroke="#b5a1e7" stroke-width="1.5"/></marker></defs>
+<rect width="1160" height="650" rx="18" fill="#14131f"/>
+<text x="40" y="59.0" font-family="Arial,sans-serif" font-size="29" fill="#eee7fa">Every finding has a source</text>
+<text x="40" y="94.0" font-family="Arial,sans-serif" font-size="16" fill="#b7abc9">The full database graph records indicators, findings, supporting records, and investigation history.</text>
+<rect x="40" y="160" width="260" height="112" rx="12" fill="#211b30" stroke="#d995ee" stroke-width="1.7"/>
+<text x="58" y="197.0" font-family="Arial,sans-serif" font-size="19" fill="#eee7fa">Indicator</text>
+<text x="58" y="228.0" font-family="Arial,sans-serif" font-size="14" fill="#b7abc9">A domain or public IP</text>
+<text x="58" y="246.9" font-family="Arial,sans-serif" font-size="14" fill="#b7abc9">The subject of a finding</text>
+<rect x="440" y="160" width="260" height="112" rx="12" fill="#211b30" stroke="#d4a055" stroke-width="1.7"/>
+<text x="458" y="197.0" font-family="Arial,sans-serif" font-size="19" fill="#eee7fa">Observation</text>
+<text x="458" y="228.0" font-family="Arial,sans-serif" font-size="14" fill="#b7abc9">Predicate + observed value</text>
+<text x="458" y="246.9" font-family="Arial,sans-serif" font-size="14" fill="#b7abc9">Source time + last fetch</text>
+<rect x="840" y="160" width="260" height="112" rx="12" fill="#211b30" stroke="#83a7ff" stroke-width="1.7"/>
+<text x="858" y="197.0" font-family="Arial,sans-serif" font-size="19" fill="#eee7fa">Evidence</text>
+<text x="858" y="228.0" font-family="Arial,sans-serif" font-size="14" fill="#b7abc9">Source ID and source URL</text>
+<text x="858" y="246.9" font-family="Arial,sans-serif" font-size="14" fill="#b7abc9">Retrieval timestamp</text>
+<rect x="40" y="410" width="260" height="112" rx="12" fill="#211b30" stroke="#e78cca" stroke-width="1.7"/>
+<text x="58" y="447.0" font-family="Arial,sans-serif" font-size="19" fill="#eee7fa">Investigation</text>
+<text x="58" y="478.0" font-family="Arial,sans-serif" font-size="14" fill="#b7abc9">Saved report snapshot</text>
+<text x="58" y="496.9" font-family="Arial,sans-serif" font-size="14" fill="#b7abc9">Run ID, time, and method</text>
+<rect x="440" y="410" width="260" height="112" rx="12" fill="#211b30" stroke="#d995ee" stroke-width="1.7"/>
+<text x="458" y="447.0" font-family="Arial,sans-serif" font-size="19" fill="#eee7fa">Related indicator</text>
+<text x="458" y="478.0" font-family="Arial,sans-serif" font-size="14" fill="#b7abc9">A sourced neighboring</text>
+<text x="458" y="496.9" font-family="Arial,sans-serif" font-size="14" fill="#b7abc9">domain or IP address</text>
+<polyline points="310,216 430,216" fill="none" stroke="#b5a1e7" stroke-width="1.8" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<rect x="303" y="184" width="117" height="22" rx="4" fill="#14131f"/>
+<text x="308" y="198.0" font-family="Arial,sans-serif" font-size="11" fill="#d1bff1">HAS_OBSERVATION</text>
+<polyline points="710,216 830,216" fill="none" stroke="#b5a1e7" stroke-width="1.8" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<rect x="721" y="184" width="96" height="22" rx="4" fill="#14131f"/>
+<text x="726" y="198.0" font-family="Arial,sans-serif" font-size="11" fill="#d1bff1">SUPPORTED_BY</text>
+<polyline points="170,284 170,398" fill="none" stroke="#b5a1e7" stroke-width="1.8" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<rect x="37" y="327" width="131" height="22" rx="4" fill="#14131f"/>
+<text x="42" y="341.0" font-family="Arial,sans-serif" font-size="11" fill="#d1bff1">HAS_INVESTIGATION</text>
+<polyline points="570,284 570,398" fill="none" stroke="#b5a1e7" stroke-width="1.8" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<rect x="580" y="327" width="75" height="22" rx="4" fill="#14131f"/>
+<text x="585" y="341.0" font-family="Arial,sans-serif" font-size="11" fill="#d1bff1">POINTS_TO</text>
+<polyline points="310,258 423,451" fill="none" stroke="#b5a1e7" stroke-width="1.8" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<rect x="285" y="353" width="103" height="22" rx="4" fill="#14131f"/>
+<text x="290" y="367.0" font-family="Arial,sans-serif" font-size="11" fill="#d1bff1">OBSERVED_LINK</text>
+<text x="40" y="573.0" font-family="Arial,sans-serif" font-size="15" fill="#b7abc9">OBSERVED_LINK stores the observation ID and predicate as a direct indicator-to-indicator connection.</text>
+<text x="40" y="603.0" font-family="Arial,sans-serif" font-size="15" fill="#b7abc9">Graph node IDs are database identifiers, not scores. The arrow label defines its meaning.</text>
+</svg>

@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1160 650" role="img" aria-labelledby="title desc">
+<title id="title">Two hops. One connection at a time.</title><desc id="desc">Illustrative topology only: these labels are examples, not live findings or a reputation verdict.</desc>
+<defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 1 1 L 9 5 L 1 9" fill="none" stroke="#b5a1e7" stroke-width="1.5"/></marker></defs>
+<rect width="1160" height="650" rx="18" fill="#14131f"/>
+<text x="40" y="59.0" font-family="Arial,sans-serif" font-size="29" fill="#eee7fa">Two hops. One connection at a time.</text>
+<text x="40" y="94.0" font-family="Arial,sans-serif" font-size="16" fill="#b7abc9">Illustrative topology only: these labels are examples, not live findings or a reputation verdict.</text>
+<rect x="40" y="200" width="260" height="112" rx="12" fill="#211b30" stroke="#d995ee" stroke-width="1.7"/>
+<text x="58" y="237.0" font-family="Arial,sans-serif" font-size="19" fill="#eee7fa">Starting domain</text>
+<text x="58" y="268.0" font-family="Arial,sans-serif" font-size="14" fill="#b7abc9">site-a.example</text>
+<text x="58" y="286.9" font-family="Arial,sans-serif" font-size="14" fill="#b7abc9">Your investigation root</text>
+<rect x="440" y="200" width="260" height="112" rx="12" fill="#211b30" stroke="#83b8e8" stroke-width="1.7"/>
+<text x="458" y="237.0" font-family="Arial,sans-serif" font-size="19" fill="#eee7fa">Shared public IP</text>
+<text x="458" y="268.0" font-family="Arial,sans-serif" font-size="14" fill="#b7abc9">An observed address</text>
+<text x="458" y="286.9" font-family="Arial,sans-serif" font-size="14" fill="#b7abc9">One connection from the root</text>
+<rect x="840" y="200" width="260" height="112" rx="12" fill="#211b30" stroke="#d995ee" stroke-width="1.7"/>
+<text x="858" y="237.0" font-family="Arial,sans-serif" font-size="19" fill="#eee7fa">Related domain</text>
+<text x="858" y="268.0" font-family="Arial,sans-serif" font-size="14" fill="#b7abc9">site-b.example</text>
+<text x="858" y="286.9" font-family="Arial,sans-serif" font-size="14" fill="#b7abc9">Two connections from the root</text>
+<polyline points="310,256 430,256" fill="none" stroke="#b5a1e7" stroke-width="1.8" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<rect x="311" y="218" width="117" height="22" rx="4" fill="#14131f"/>
+<text x="316" y="232.0" font-family="Arial,sans-serif" font-size="11" fill="#d1bff1">DNS ASSOCIATION</text>
+<polyline points="830,256 710,256" fill="none" stroke="#b5a1e7" stroke-width="1.8" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<rect x="711" y="218" width="117" height="22" rx="4" fill="#14131f"/>
+<text x="716" y="232.0" font-family="Arial,sans-serif" font-size="11" fill="#d1bff1">DNS ASSOCIATION</text>
+<text x="40" y="573.0" font-family="Arial,sans-serif" font-size="15" fill="#b7abc9">Hop 1: start domain to IP. Hop 2: traverse from the IP to the related domain.</text>
+<text x="40" y="603.0" font-family="Arial,sans-serif" font-size="15" fill="#b7abc9">Paths follow OBSERVED_LINK in either direction. A second hop exists only when stored links support it.</text>
+<text x="40" y="633.0" font-family="Arial,sans-serif" font-size="15" fill="#b7abc9">Shared hosting does not establish shared ownership, malicious intent, or compromise.</text>
+</svg>

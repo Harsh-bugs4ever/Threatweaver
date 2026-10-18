@@ -6,6 +6,10 @@ An OTX pulse mention or DNS connection is a lead for investigation. It does **no
 
 ## System flow
 
+The website opens with a product overview at `/`, a searchable field guide at `/docs`, and the investigation workbench at `/investigate`. The guide covers setup, architecture, nodes and arrows, two-hop paths, evidence provenance, report interpretation, planner bounds, API routes, and troubleshooting.
+
+The on-site diagrams include downloadable Excalidraw scenes and matching SVG previews in `frontend/public/diagrams`. Regenerate these together with `python docs/generate_web_diagrams.py`. Download a scene from the documentation and open it in Excalidraw to edit it for a presentation. For static hosting, configure an SPA fallback to `index.html` so `/docs` and `/investigate` can be opened directly; Vite's development and preview servers already provide this fallback.
+
 ![ThreatWeaver system flow](docs/system-flow.svg)
 
 The diagram is also available as an [editable Excalidraw scene](docs/system-flow.excalidraw). Open that file in [Excalidraw](https://excalidraw.com/) to rearrange or export it. The SVG above is the README preview; both files use the same layout, with separate connector lanes and no crossing lines.
@@ -77,6 +81,10 @@ LIMIT 20
 `current_dns_a` means a current Google Public DNS A answer. `passive_dns` means an OTX passive DNS association. Select an edge in ThreatWeaver to inspect the underlying observation ID, source URL, and timestamps. Current resolution can change, and shared infrastructure does not prove common ownership or malicious intent.
 
 ## Data model and limits
+
+The workbench includes quick-fill example indicators, evidence search, and an exact source-ID filter. Download the current investigation as Markdown for review or JSON for its complete report, graph, evidence, and tool audit. Markdown exports retain source references, timestamps, and uncertainty statements.
+
+Recommended actions have a progress checklist saved locally in this browser for each indicator. Reopening an indicator restores checks for matching action text; checklist progress is not shared with other browsers or included in exports. The evidence inspector supports keyboard navigation and closes with Escape.
 
 The graph has `Indicator`, `Observation`, `Evidence`, and `Investigation` nodes. `HAS_OBSERVATION` and `SUPPORTED_BY` retain provenance; `POINTS_TO` and `OBSERVED_LINK` connect sourced indicators; `HAS_INVESTIGATION` retains a run. Repeated fetches reuse stable observation and evidence IDs and update the last fetch time.
 
