@@ -1,8 +1,11 @@
-# Build plan
+﻿# Build and delivery status
 
-1. **Foundation** — scaffold API and UI, environment sample, Docker Compose and setup documentation. Status: complete.
-2. **Investigation** — validate indicators; fetch real OTX data; persist deduplicated entities, observations, evidence, investigation snapshots and tool audits in FalkorDB; expose bounded lookup, paths and evidence tools; make graph relationships influence investigation priority. Status: implemented; live FalkorDB and OTX integration pending an available Docker daemon and API key.
-3. **Workbench** — build a responsive investigation UI with graph, findings, recommendations, evidence inspector, saved history, loading and useful failures. Status: complete and production build verified.
-4. **Validation and delivery** — meaningful API tests, UI build, local integration when services and credentials permit, and a reproducible demo script. Status: tests and build complete; live integration and recorded video pending runnable external services and human recording.
+Updated October 18, 2026.
 
-Scope guardrails: no unsupported compromise language, no invented counts or data, no unbounded graph traversal, no real blocking, and no claims of successful external API calls without evidence.
+1. **Foundation:** FastAPI API, React/TypeScript UI, environment sample, Docker Compose, and portable setup instructions are implemented.
+2. **Graph investigation:** OTX and current DNS findings are normalized and persisted with provenance in FalkorDB. Parameterized, bounded one- and two-hop queries and graph-qualified follow-up selection are implemented. Saved snapshots and optional planner audits are retained.
+3. **Website:** Landing page, searchable documentation, editable Excalidraw diagram downloads, investigation dashboard, source inspector, evidence filters, report exports, saved history, and browser-local action checklists are implemented.
+4. **Verification:** Mocked backend tests and production frontend builds have passed during development. Live local investigations have completed when sources and Docker were available; this is not a guarantee of ongoing provider availability.
+5. **Submission:** Public repository visibility has been verified. Setup, model, Cypher templates, algorithms, and a four-minute recording script are documented. The actual demo recording URL and exact entered track remain pending. See SUBMISSION.md for current requirements and final push checks.
+
+Scope: no invented source data, no compromise verdict from association alone, no unbounded traversal, and no blocking/isolation actions. Do not describe the unrecorded demo or an unprovided public deployment as complete.

@@ -18,7 +18,7 @@ function Header({ page }: { page: 'home' | 'docs' }) {
 }
 
 function Footer() {
-  return <footer className="site-footer"><Brand /><p>Evidence first. Conclusions with context.</p><a href="/docs#limits">Understand the limits <ArrowUpRight size={13} /></a></footer>
+  return <footer className="site-footer"><Brand /><p>Evidence first. Conclusions with context.</p><a href="https://github.com/Harsh-bugs4ever/Threatweaver" target="_blank" rel="noreferrer">Public source code <ArrowUpRight size={13} /></a><a href="/docs#limits">Understand the limits <ArrowUpRight size={13} /></a></footer>
 }
 
 const diagramInfo = {
@@ -140,6 +140,7 @@ const sections: { id: string; title: string; keywords: string; content: ReactNod
   </> },
   { id: 'api', title: 'API reference and graph queries', keywords: 'API endpoints POST GET curl Cypher query graph health trace_paths get_evidence observations investigations', content: <>
     <p>The development frontend proxies <code>/api</code> to the local API. The following routes support the same investigation workflow used by the interface.</p>
+    <p>The database query language is <strong>Cypher, not GraphQL</strong>. The repository includes the <a href="https://github.com/Harsh-bugs4ever/Threatweaver/blob/main/docs/queries.cypher" target="_blank" rel="noreferrer">actual parameterized Cypher templates</a>, a <a href="https://github.com/Harsh-bugs4ever/Threatweaver/blob/main/docs/GRAPH_QUERIES.md" target="_blank" rel="noreferrer">graph-algorithm guide</a>, and the <a href="https://github.com/Harsh-bugs4ever/Threatweaver/blob/main/docs/GRAPH_MODEL.md" target="_blank" rel="noreferrer">full property-graph model</a>.</p>
     <div className="docs-table-wrap"><table><thead><tr><th>Route</th><th>Purpose</th></tr></thead><tbody><tr><td><code>GET /api/health</code></td><td>Database readiness and key configuration flags.</td></tr><tr><td><code>POST /api/investigations</code></td><td>Investigate an indicator and save the run.</td></tr><tr><td><code>GET /api/investigations?limit=8</code></td><td>List saved runs.</td></tr><tr><td><code>GET /api/investigations/&#123;uuid&#125;</code></td><td>Reopen a saved report and audit.</td></tr><tr><td><code>GET /api/observations/&#123;id&#125;</code></td><td>Read provenance behind an observation.</td></tr><tr><td><code>GET /api/tools/trace_paths</code></td><td>Read bounded paths using indicator, depth, and limit.</td></tr><tr><td><code>GET /api/tools/get_evidence</code></td><td>Read stored evidence using indicator and limit.</td></tr></tbody></table></div>
     <p>Example investigation request body:</p><CodeBlock>{'{\n  "indicator": "example.com",\n  "expand": true,\n  "use_agent": false\n}'}</CodeBlock>
     <p>To inspect only a domain’s indicator links in FalkorDB Browser, select the <code>threatweaver</code> graph and run this read-only query:</p>
